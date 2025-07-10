@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Categoriza tus canciones Spotify 🎧</title>
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
+    h1 { color: #1db954; }
+    button { margin: 10px; padding: 10px 20px; background: #1db954; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #14833b; }
+    img { height: 50px; margin-right: 10px; vertical-align: middle; }
+    .song { background: white; padding: 10px; margin: 5px 0; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>🎵 Tus canciones de Spotify</h1>
+  <button onclick="login()">Login con Spotify</button>
+  <div id="songs"></div>
+
+  <script>
+    // 🚨 CAMBIA esto por tu Client ID de Spotify
+    const clientId = "AQUÍ_TU_CLIENT_ID";
+    // 🚨 CAMBIA esto por tu URL de Vercel final
+    const redirectUri = "https://tu-proyecto.vercel.app"; // sin /callback porque se usa la raíz
+
+    const scopes = [
+      'user-library-read'
+    ];
+
+    function login() {
+      const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes.join(" "))}`;
+      window.location = authUrl;
+    }
+
+    function getHashParams() {
+      const hash = window.location.hash.substring(1);
+      const params = {};
+      hash.split('&').forEach(part => {
+        const [key, value] = part.split('=');
+        params[key] = value;
+      });
+      return params;
+    }
+
+    async function fetchSongs(token) {
+      const response = await fetch("https://api.spotify.com/v1/me/tracks?limit=10", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      const container = document.getElementById("songs");
+      container.innerHTML = "";
+      data.items.forEach(item => {
+        const song = item.track;
+        const div = document.createElement("div");
+        div.className = "song";
+        div.innerHTML = `
+          <img src="${song.album.images[2]?.url || ""}" alt="cover">
+          <strong>${song.name}</strong> - ${song.artists[0].name}
+          <br>
+          <audio controls src="${song.preview_url}">No preview</audio>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    window.onload = () => {
+      const params = getHashParams();
+      if (params.access_token) {
+        fetchSongs(params.access_token);
+      }
+    };
+  </script>
+</body>
+</html>
