@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Clasificar tus canciones 💚</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    button { margin: 10px; padding: 10px 20px; }
+    #status { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Clasificar canciones de Spotify 🎵</h1>
+  <button onclick="login()">Conectar con Spotify</button>
+  <div id="status"></div>
+
+  <script>
+    const clientId = "98f6b66d667c44c9a155559bf87b63ae"; // Tu Client ID
+    const redirectUri = "https://spotify-project-vnig.vercel.app/"; // Tu URL en Vercel
+
+    function login() {
+      const scopes = "user-library-read playlist-read-private";
+      const authUrl = "https://accounts.spotify.com/authorize" +
+        "?response_type=token" +
+        "&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scopes) +
+        "&redirect_uri=" + encodeURIComponent(redirectUri);
+      window.location = authUrl;
+    }
+
+    window.onload = () => {
+      if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get("access_token");
+        if (accessToken) {
+          document.getElementById("status").innerText = "✅ ¡Conectado! Token recibido.";
+          // Aquí podrías continuar para pedir canciones y clasificarlas
+        }
+      }
+    };
+  </script>
+</body>
+</html>
