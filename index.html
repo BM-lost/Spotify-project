@@ -21,6 +21,13 @@
       cursor: pointer;
       border-radius: 20px;
     }
+    .playlist {
+      margin-top: 30px;
+    }
+    .playlist h2 {
+      border-bottom: 2px solid #1db954;
+      padding-bottom: 5px;
+    }
     .song {
       border-bottom: 1px solid #333;
       padding: 10px;
@@ -52,29 +59,48 @@
 <body>
   <h1>Clasificar tus canciones 🎵💚</h1>
   <button id="loginBtn">Conectar con Spotify</button>
-  <div id="songs"></div>
+  <div id="playlists"></div>
 
   <script>
     const clientId = "98f6b66d667c44c9a155559bf87b63ae";
-    const redirectUri = "https://spotify-project-bay-gamma.vercel.app/api/callback";
+    const redirectUri = window.location.origin + window.location.pathname;
     const emotions = ["Amor", "Felicidad", "Tristeza", "Euforia", "Nostalgia", "Calma", "Motivación", "Esperanza", "Soledad", "Rabia", "Culpa", "Arrepentimiento", "Valentía", "Melancolía", "Inspiración", "Ternura", "Misterio", "Confianza", "Libertad", "Dolor"];
 
+    function getAccessTokenFromHash() {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      return params.get("access_token");
+    }
+
+    const accessToken = getAccessTokenFromHash();
+
     document.getElementById("loginBtn").onclick = () => {
-      const scopes = "user-library-read";
+      const scopes = "user-library-read playlist-read-private playlist-read-collaborative";
       const authUrl = "https://accounts.spotify.com/authorize" +
-        "?response_type=code" +
+        "?response_type=token" +
         "&client_id=" + encodeURIComponent(clientId) +
         "&scope=" + encodeURIComponent(scopes) +
         "&redirect_uri=" + encodeURIComponent(redirectUri);
       window.location = authUrl;
     };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const accessToken = urlParams.get("access_token");
+    async function fetchPlaylists(token) {
+      let playlists = [];
+      let url = "https://api.spotify.com/v1/me/playlists?limit=50";
+      while (url) {
+        const res = await fetch(url, {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const data = await res.json();
+        playlists = playlists.concat(data.items);
+        url = data.next;
+      }
+      return playlists;
+    }
 
-    async function fetchAllSongs(token) {
+    async function fetchSongsFromPlaylist(token, playlistId) {
       let songs = [];
-      let url = "https://api.spotify.com/v1/me/tracks?limit=50";
+      let url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
       while (url) {
         const res = await fetch(url, {
           headers: { Authorization: "Bearer " + token }
@@ -88,63 +114,73 @@
 
     if (accessToken) {
       document.getElementById("loginBtn").style.display = "none";
-      fetchAllSongs(accessToken).then(items => {
-        const container = document.getElementById("songs");
-        items.forEach(item => {
-          const track = item.track;
-          const songId = track.id;
-          const savedTags = JSON.parse(localStorage.getItem(songId)) || [];
+      fetchPlaylists(accessToken).then(playlists => {
+        const container = document.getElementById("playlists");
+        playlists.forEach(async playlist => {
+          const playlistDiv = document.createElement("div");
+          playlistDiv.className = "playlist";
+          playlistDiv.innerHTML = `<h2>${playlist.name}</h2>`;
+          container.appendChild(playlistDiv);
 
-          const songDiv = document.createElement("div");
-          songDiv.className = "song";
+          const songs = await fetchSongsFromPlaylist(accessToken, playlist.id);
+          songs.forEach(item => {
+            const track = item.track;
+            if (!track) return; // a veces hay null
 
-          const img = document.createElement("img");
-          img.src = track.album.images[0]?.url || "";
-          songDiv.appendChild(img);
+            const songId = track.id;
+            const savedTags = JSON.parse(localStorage.getItem(songId)) || [];
 
-          const infoDiv = document.createElement("div");
-          infoDiv.innerHTML = `<b>${track.name}</b><br>${track.artists.map(a => a.name).join(", ")}`;
+            const songDiv = document.createElement("div");
+            songDiv.className = "song";
 
-          const select = document.createElement("select");
-          select.innerHTML = ["Por categorizar", ...emotions].map(e => `<option value="${e}">${e}</option>`).join("");
+            const img = document.createElement("img");
+            img.src = track.album.images[0]?.url || "";
+            songDiv.appendChild(img);
 
-          const addBtn = document.createElement("button");
-          addBtn.innerText = "Añadir";
-          addBtn.onclick = () => {
-            if (!savedTags.includes(select.value) && savedTags.length < 5 && select.value !== "Por categorizar") {
-              savedTags.push(select.value);
-              localStorage.setItem(songId, JSON.stringify(savedTags));
-              updateTags();
-            }
-          };
+            const infoDiv = document.createElement("div");
+            infoDiv.innerHTML = `<b>${track.name}</b><br>${track.artists.map(a => a.name).join(", ")}`;
 
-          const tagsDiv = document.createElement("div");
-          tagsDiv.className = "tags";
+            const select = document.createElement("select");
+            select.innerHTML = ["Por categorizar", ...emotions].map(e => `<option value="${e}">${e}</option>`).join("");
 
-          function updateTags() {
-            tagsDiv.innerHTML = "";
-            if (savedTags.length === 0) {
-              const tagDiv = document.createElement("div");
-              tagDiv.className = "tag";
-              tagDiv.innerText = "Por categorizar";
-              tagsDiv.appendChild(tagDiv);
-            } else {
-              savedTags.forEach(tag => {
+            const addBtn = document.createElement("button");
+            addBtn.innerText = "Añadir";
+            addBtn.onclick = () => {
+              if (!savedTags.includes(select.value) && savedTags.length < 5 && select.value !== "Por categorizar") {
+                savedTags.push(select.value);
+                localStorage.setItem(songId, JSON.stringify(savedTags));
+                updateTags();
+              }
+            };
+
+            const tagsDiv = document.createElement("div");
+            tagsDiv.className = "tags";
+
+            function updateTags() {
+              tagsDiv.innerHTML = "";
+              if (savedTags.length === 0) {
                 const tagDiv = document.createElement("div");
                 tagDiv.className = "tag";
-                tagDiv.innerText = tag;
+                tagDiv.innerText = "Por categorizar";
                 tagsDiv.appendChild(tagDiv);
-              });
+              } else {
+                savedTags.forEach(tag => {
+                  const tagDiv = document.createElement("div");
+                  tagDiv.className = "tag";
+                  tagDiv.innerText = tag;
+                  tagsDiv.appendChild(tagDiv);
+                });
+              }
             }
-          }
-          updateTags();
+            updateTags();
 
-          infoDiv.appendChild(select);
-          infoDiv.appendChild(addBtn);
-          infoDiv.appendChild(tagsDiv);
+            infoDiv.appendChild(select);
+            infoDiv.appendChild(addBtn);
+            infoDiv.appendChild(tagsDiv);
 
-          songDiv.appendChild(infoDiv);
-          container.appendChild(songDiv);
+            songDiv.appendChild(infoDiv);
+            playlistDiv.appendChild(songDiv);
+          });
         });
       });
     }
