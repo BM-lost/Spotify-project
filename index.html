@@ -63,7 +63,7 @@
 
   <script>
     const clientId = "98f6b66d667c44c9a155559bf87b63ae";
-    const redirectUri = window.location.origin + window.location.pathname;
+    const redirectUri = "https://spotify-project-git-main-bm-losts-projects.vercel.app/";
     const emotions = ["Amor", "Felicidad", "Tristeza", "Euforia", "Nostalgia", "Calma", "Motivación", "Esperanza", "Soledad", "Rabia", "Culpa", "Arrepentimiento", "Valentía", "Melancolía", "Inspiración", "Ternura", "Misterio", "Confianza", "Libertad", "Dolor"];
 
     function getAccessTokenFromHash() {
@@ -125,7 +125,7 @@
           const songs = await fetchSongsFromPlaylist(accessToken, playlist.id);
           songs.forEach(item => {
             const track = item.track;
-            if (!track) return; // a veces hay null
+            if (!track) return;
 
             const songId = track.id;
             const savedTags = JSON.parse(localStorage.getItem(songId)) || [];
