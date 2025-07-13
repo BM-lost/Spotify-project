@@ -11,15 +11,14 @@
 </head>
 <body>
   <h1>Clasificar canciones de Spotify 🎵</h1>
-  <button onclick="login()">Conectar con Spotify</button>
+  <button id="loginBtn">Conectar con Spotify</button>
   <div id="status"></div>
 
   <script>
     const clientId = "98f6b66d667c44c9a155559bf87b63ae";
-    const redirectUri = "https://spotify-project-bay-gamma.vercel.app/api/callback"; // <-- el endpoint backend
-    const serverUri = "https://spotify-project-bay-gamma.vercel.app"; // tu dominio en Vercel
+    const redirectUri = "https://spotify-project-bay-gamma.vercel.app/api/callback"; // callback correcto
 
-    function login() {
+    document.getElementById("loginBtn").onclick = () => {
       const scopes = "user-library-read playlist-read-private";
       const authUrl = "https://accounts.spotify.com/authorize" +
         "?response_type=code" +
@@ -27,30 +26,14 @@
         "&scope=" + encodeURIComponent(scopes) +
         "&redirect_uri=" + encodeURIComponent(redirectUri);
       window.location = authUrl;
-    }
-
-    window.onload = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-      if (code) {
-        document.getElementById("status").innerText = "⏳ Obteniendo token...";
-        fetch(serverUri + "/api/callback?code=" + code)
-          .then(res => res.json())
-          .then(data => {
-            if (data.access_token) {
-              document.getElementById("status").innerText = "✅ ¡Conectado! Token recibido.";
-              console.log("Access token:", data.access_token);
-              // Aquí luego podrás pedir las canciones y clasificarlas
-            } else {
-              document.getElementById("status").innerText = "❌ Error al obtener el token.";
-            }
-          })
-          .catch(err => {
-            document.getElementById("status").innerText = "❌ Error al conectar.";
-            console.error(err);
-          });
-      }
     };
+
+    // Revisar si el token llegó por query
+    const urlParams = new URLSearchParams(window.location.search);
+    const accessToken = urlParams.get("access_token");
+    if (accessToken) {
+      document.getElementById("status").innerText = "✅ ¡Conectado! Ahora puedes empezar a cargar canciones.";
+    }
   </script>
 </body>
 </html>
