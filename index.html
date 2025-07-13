@@ -4,22 +4,63 @@
   <meta charset="UTF-8" />
   <title>Clasificar tus canciones 💚</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-    button { margin: 10px; padding: 10px 20px; }
-    #status { margin-top: 20px; }
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { text-align: center; }
+    button {
+      background-color: #1db954;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 0;
+      cursor: pointer;
+      border-radius: 20px;
+    }
+    .song {
+      border-bottom: 1px solid #333;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+    }
+    .song img {
+      width: 60px;
+      height: 60px;
+      margin-right: 10px;
+    }
+    select {
+      margin-top: 5px;
+      padding: 5px;
+    }
+    .tags {
+      margin-top: 5px;
+    }
+    .tag {
+      display: inline-block;
+      background-color: #1db954;
+      padding: 4px 10px;
+      border-radius: 12px;
+      margin: 2px;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
-  <h1>Clasificar canciones de Spotify 🎵</h1>
+  <h1>Clasificar tus canciones 🎵💚</h1>
   <button id="loginBtn">Conectar con Spotify</button>
-  <div id="status"></div>
+  <div id="songs"></div>
 
   <script>
     const clientId = "98f6b66d667c44c9a155559bf87b63ae";
-    const redirectUri = "https://spotify-project-bay-gamma.vercel.app/api/callback"; // callback correcto
+    const redirectUri = "https://spotify-project-bay-gamma.vercel.app/api/callback";
+    const emotions = ["Amor", "Felicidad", "Tristeza", "Euforia", "Nostalgia", "Calma", "Motivación", "Esperanza", "Soledad", "Rabia", "Culpa", "Arrepentimiento", "Valentía", "Melancolía", "Inspiración", "Ternura", "Misterio", "Confianza", "Libertad", "Dolor"];
 
     document.getElementById("loginBtn").onclick = () => {
-      const scopes = "user-library-read playlist-read-private";
+      const scopes = "user-library-read";
       const authUrl = "https://accounts.spotify.com/authorize" +
         "?response_type=code" +
         "&client_id=" + encodeURIComponent(clientId) +
@@ -28,11 +69,67 @@
       window.location = authUrl;
     };
 
-    // Revisar si el token llegó por query
     const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("access_token");
+
     if (accessToken) {
-      document.getElementById("status").innerText = "✅ ¡Conectado! Ahora puedes empezar a cargar canciones.";
+      document.getElementById("loginBtn").style.display = "none";
+      fetch("https://api.spotify.com/v1/me/tracks?limit=20", {
+        headers: { Authorization: "Bearer " + accessToken }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("songs");
+        data.items.forEach(item => {
+          const track = item.track;
+          const songId = track.id;
+          const savedTags = JSON.parse(localStorage.getItem(songId)) || [];
+
+          const songDiv = document.createElement("div");
+          songDiv.className = "song";
+
+          const img = document.createElement("img");
+          img.src = track.album.images[0]?.url || "";
+          songDiv.appendChild(img);
+
+          const infoDiv = document.createElement("div");
+          infoDiv.innerHTML = `<b>${track.name}</b><br>${track.artists.map(a => a.name).join(", ")}`;
+
+          const select = document.createElement("select");
+          select.innerHTML = emotions.map(e => `<option value="${e}">${e}</option>`).join("");
+
+          const addBtn = document.createElement("button");
+          addBtn.innerText = "Añadir";
+          addBtn.onclick = () => {
+            if (!savedTags.includes(select.value) && savedTags.length < 5) {
+              savedTags.push(select.value);
+              localStorage.setItem(songId, JSON.stringify(savedTags));
+              updateTags();
+            }
+          };
+
+          const tagsDiv = document.createElement("div");
+          tagsDiv.className = "tags";
+
+          function updateTags() {
+            tagsDiv.innerHTML = "";
+            savedTags.forEach(tag => {
+              const tagDiv = document.createElement("div");
+              tagDiv.className = "tag";
+              tagDiv.innerText = tag;
+              tagsDiv.appendChild(tagDiv);
+            });
+          }
+          updateTags();
+
+          infoDiv.appendChild(select);
+          infoDiv.appendChild(addBtn);
+          infoDiv.appendChild(tagsDiv);
+
+          songDiv.appendChild(infoDiv);
+          container.appendChild(songDiv);
+        });
+      });
     }
   </script>
 </body>
