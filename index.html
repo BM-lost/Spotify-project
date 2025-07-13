@@ -81,6 +81,11 @@
         "&client_id=" + encodeURIComponent(clientId) +
         "&scope=" + encodeURIComponent(scopes) +
         "&redirect_uri=" + encodeURIComponent(redirectUri);
+
+      // 💥 ALERT para ver la URL en celular
+      alert("URL generada:\n\n" + authUrl);
+
+      // Luego abre Spotify
       window.location = authUrl;
     };
 
